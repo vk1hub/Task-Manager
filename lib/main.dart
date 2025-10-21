@@ -53,6 +53,32 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _taskController = TextEditingController();
+  // keeping track of tasks and status
+  List<String> tasks = [];
+  List<bool> isCompleted = [];
+
+  void addTask() {
+    if (_taskController.text.isNotEmpty) {
+      setState(() {
+        tasks.add(_taskController.text);
+        isCompleted.add(false);
+        _taskController.clear();
+      });
+    }
+  }
+
+  void deleteTask(int index) {
+    setState(() {
+      tasks.removeAt(index);
+      isCompleted.removeAt(index);
+    });
+  }
+
+  void toggleTask(int index) {
+    setState(() {
+      isCompleted[index] = !isCompleted[index];
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,18 +104,43 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: TextField(
                     controller: _taskController,
                     decoration: const InputDecoration(
-                      hintText: 'Enter task name',
+                      hintText: 'Task name',
                       border: OutlineInputBorder(),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
-                  onPressed: () {
-                  },
+                  onPressed: addTask,
                   child: const Text('Add'),
                 ),
               ],
+            ),
+            const SizedBox(height: 25),
+            Expanded(
+              child: ListView.builder(
+                itemCount: tasks.length,
+                itemBuilder: (context, index) {
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListTile(
+                      leading: Checkbox(
+                        value: isCompleted[index],
+                        onChanged: (bool? value) {
+                          toggleTask(index);
+                        },
+                      ),
+                      title: Text(tasks[index]),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          deleteTask(index);
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
