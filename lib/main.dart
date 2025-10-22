@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
@@ -12,10 +13,27 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool isDarkMode = false;
 
-  void toggleTheme() {
+  @override
+  void initState() {
+    super.initState();
+    loadTheme();
+  }
+
+  // loading the saved theme from shared preferences
+  void loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isDarkMode = prefs.getBool('isDarkMode') ?? false;
+    });
+  }
+
+  // toggling theme and saving preferences
+  void toggleTheme() async {
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
       isDarkMode = !isDarkMode;
     });
+    prefs.setBool('isDarkMode', isDarkMode);
   }
 
   @override
@@ -53,9 +71,46 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _taskController = TextEditingController();
-  // keeping track of tasks and status
   List<String> tasks = [];
   List<bool> isCompleted = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadTasks();
+  }
+
+  void loadTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      tasks = prefs.getStringList('tasks') ?? [];
+      List<String>? savedStatus = prefs.getStringList('isCompleted');
+
+      isCompleted = [];
+      // converting the saved strings back to bools
+      if (savedStatus != null) {
+        for (int i = 0; i < savedStatus.length; i++) {
+          if (savedStatus[i] == 'true') {
+            isCompleted.add(true);
+          } else {
+            isCompleted.add(false);
+          }
+        }
+      }
+    });
+  }
+
+  void saveTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> completedStrings = [];
+
+    // converting bools into strings
+    for (int i = 0; i < isCompleted.length; i++) {
+      completedStrings.add(isCompleted[i].toString());
+    }
+    prefs.setStringList('tasks', tasks);
+    prefs.setStringList('isCompleted', completedStrings);
+  }
 
   void addTask() {
     if (_taskController.text.isNotEmpty) {
@@ -64,6 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
         isCompleted.add(false);
         _taskController.clear();
       });
+      saveTasks();
     }
   }
 
@@ -72,12 +128,14 @@ class _MyHomePageState extends State<MyHomePage> {
       tasks.removeAt(index);
       isCompleted.removeAt(index);
     });
+    saveTasks();
   }
 
   void toggleTask(int index) {
     setState(() {
       isCompleted[index] = !isCompleted[index];
     });
+    saveTasks();
   }
 
   @override
@@ -110,10 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: addTask,
-                  child: const Text('Add'),
-                ),
+                ElevatedButton(onPressed: addTask, child: const Text('Add')),
               ],
             ),
             const SizedBox(height: 25),
